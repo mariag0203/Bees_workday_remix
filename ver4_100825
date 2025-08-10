@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bee's Workday</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@farcade/game-sdk@latest/dist/index.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #game-container {
+        width: 100%;
+        height: 100vh;
+        user-select: none;
+      } /* Removed custom cursor */
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script>
+      class IntroScene extends Phaser.Scene {
+        constructor() {
+          super({ key: "IntroScene" });
+        }
+
+        preload() {
+          this.load.image(
+            "introBackground",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/intro100825-boFWXNuldi6QsZnOgwRyxCPnansRhE.png?JF2B",
+          );
+        }
+
+        create() {
+          const introImage = this.add.image(270, 480, "introBackground").setDisplaySize(540, 960);
+          introImage.setInteractive();
+          introImage.on("pointerdown", () => {
+            this.scene.start("MainScene");
+            window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+          });
+
+          // Create text first to get its width
+          const playText = this.add
+            .text(270, 800, "Play", { fontSize: "32px", fill: "#000", fontStyle: "bold" })
+            .setOrigin(0.5);
+          const textWidth = playText.width;
+          const padding = 40; // Add padding on both sides
+          const newButtonWidth = textWidth + padding;
+
+          const graphicsX = 270 - newButtonWidth / 2; // Center the button
+          const playButtonGraphics = this.add.graphics({ x: graphicsX, y: 770 });
+          playButtonGraphics.fillStyle(0xffd700, 1);
+          playButtonGraphics.fillRoundedRect(0, 0, newButtonWidth, 60, 10); // Use new width
+
+          // Bring the text to the front so it's on top of the graphics
+          this.children.bringToTop(playText);
+
+          const playButtonZone = this.add.zone(270, 800, newButtonWidth, 60).setOrigin(0.5, 0.5).setInteractive();
+          playButtonZone.on("pointerdown", () => {
+            this.scene.start("MainScene");
+            window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+          });
+        }
+      }
+
+      class MainScene extends Phaser.Scene {
+        constructor() {
+          super({ key: "MainScene" });
+          this.gameTimer = null; // Initialize game timer
+          this.spawnTimer = null; // Initialize spawn timer
+        }
+
+        init() {
+          this.isGameOver = false; // Reset game over flag on scene restart
+        }
+
+        preload() {
+          this.load.image(
+            "gameBackground",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/mainscene-KD9cUb0ZbeIyBKv01v8zawEo7hplhZ.jpg?aUH5",
+          );
+          this.load.image(
+            "pink_poppy_closed",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/poppy-Bcur6BwgVCmNlyHPKfgnCWm3KQUhmo.png?xNV5",
+          );
+          this.load.image(
+            "pink_poppy_open",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/poppy-Bcur6BwgVCmNlyHPKfgnCWm3KQUhmo.png?xNV5",
+          );
+          this.load.image(
+            "anemone_closed",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/anemon-C83c3q3vXWoSYagyJs4G7FzDX3Q8hE.png?7y7q",
+          );
+          this.load.image(
+            "anemone_open",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/anemon-C83c3q3vXWoSYagyJs4G7FzDX3Q8hE.png?7y7q",
+          );
+          this.load.image(
+            "daisy_closed",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/daisy-W6nan9jeusEAWSKuYVwsITVsraQqOD.png?NKDo",
+          );
+          this.load.image(
+            "daisy_open",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/daisy-W6nan9jeusEAWSKuYVwsITVsraQqOD.png?NKDo",
+          );
+          this.load.image(
+            "red_poppy_closed",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/poppy2-Nv3sfqG7RXfQjmHBkqrEG3ZT7G4v2s.png?V2Bm",
+          );
+          this.load.image(
+            "red_poppy_open",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/poppy2-Nv3sfqG7RXfQjmHBkqrEG3ZT7G4v2s.png?V2Bm",
+          );
+          this.load.image("hogweed", "https://remix.gg/assets/hogweed.png");
+          this.load.image(
+            "borshevik",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/borsh2-a1tBWZBXyTAKBeWIIfxUo0IgrqtHOd.png?00aU",
+          );
+          this.load.image(
+            "bee",
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/422b014a-adff-4211-ac85-e6732ce02352/photo_2025-08-03_16-22-46-removebg-preview-Va9bahTLxYVMMxGwov8Rv0hOSO3BRX.png?jdAs",
+          );
+        }
+
+        create() {
+          // Optional cleanup for reliability, though restart() handles it
+          if (this.gameTimer) {
+            this.gameTimer.remove();
+            this.gameTimer = null;
+          }
+          if (this.spawnTimer) {
+            this.spawnTimer.remove();
+            this.spawnTimer = null;
+          }
+          this.flowers = this.physics.add.group(); // Reinitialize flowers group
+
+          this.add.image(270, 480, "gameBackground").setDisplaySize(540, 960);
+
+          // Add draggable bee at center of upper half, increased size by 1.5 times and set to higher depth
+          this.bee = this.add.image(270, 240, "bee").setDisplaySize(112.5, 112.5).setDepth(1);
+          this.bee.type = "bee"; // Add type for bee
+          this.bee.setInteractive();
+          this.input.setDraggable(this.bee);
+
+          this.input.on("drag", (pointer, gameObject, dragX, dragY) => {
+            if (!this.isGameOver) {
+              // Only allow dragging if game is not over
+              gameObject.x = dragX;
+              gameObject.y = dragY;
+              window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+            }
+          });
+
+          this.spawnFlower(); // Start the first spawn
+
+          this.score = 0; // Reset score to zero
+          this.scoreText = this.add.text(20, 20, "Score: 0", { fontSize: "32px", fill: "#000" });
+          this.timerText = this.add.text(20, 60, "Time: 20", { fontSize: "32px", fill: "#000" }); // Reset timer text
+
+          this.gameTimer = this.time.addEvent({
+            // Assign to property for later removal
+            delay: 20000,
+            callback: () => {
+              this.isGameOver = true;
+              this.cleanupGame(); // Call cleanup function
+            },
+            callbackScope: this,
+          });
+
+          this.input.on("pointerdown", (pointer) => {
+            if (!this.isGameOver) {
+              window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+            }
+          });
+
+          window.FarcadeSDK.singlePlayer.actions.ready();
+        }
+
+        spawnFlower() {
+          if (this.isGameOver) return; // Stop spawning if game is over
+
+          const numberToSpawn = Phaser.Math.Between(6, 8); // Spawn 6 to 8 flowers
+          const flowerTypes = ["pink_poppy", "anemone", "daisy", "red_poppy", "hogweed", "borshevik"];
+          const minDistance = 50; // Minimum distance between flowers, increased to 50 px
+
+          for (let i = 0; i < numberToSpawn; i++) {
+            const type = flowerTypes[Phaser.Math.Between(0, flowerTypes.length - 1)];
+            let textureKey;
+            let isOpen = false;
+
+            if (type === "borshevik" && Phaser.Math.FloatBetween(0, 1) > 0.5) {
+              continue; // Skip spawning borshevik 50% of the time
+            }
+
+            if (type === "hogweed" || type === "borshevik") {
+              textureKey = type;
+            } else {
+              textureKey = type + "_open"; // Spawn collectible flowers as open
+              isOpen = true;
+            }
+
+            if (this.textures.exists(textureKey)) {
+              // Only proceed if texture exists
+              let attempts = 0;
+              let flowerPlaced = false;
+              while (attempts < 20 && !flowerPlaced) {
+                // Increased attempts to 20
+                const x = Phaser.Math.Between(50, 490);
+                const y = Phaser.Math.Between(480, 860); // Restrict to lower half of the screen
+                const newFlower = this.flowers.create(x, y, textureKey);
+                if (type === "borshevik") {
+                  newFlower.setScale(0.3); // 1.5 times the original scale of 0.2
+                } else {
+                  newFlower.setScale(0.2); // Original scale for other flowers
+                }
+                newFlower.setDepth(0);
+                newFlower.setVisible(true); // Ensure visibility
+                newFlower.setAlpha(1); // Ensure full opacity
+                newFlower.type = type;
+                newFlower.isOpen = isOpen;
+
+                let overlaps = false;
+                this.flowers.getChildren().forEach((existingFlower) => {
+                  if (existingFlower !== newFlower) {
+                    if (
+                      this.isOverlapping(newFlower, existingFlower) ||
+                      Phaser.Math.Distance.Between(newFlower.x, newFlower.y, existingFlower.x, existingFlower.y) <
+                        minDistance
+                    ) {
+                      overlaps = true;
+                      newFlower.destroy(); // Destroy and try again if overlapping or too close
+                    }
+                  }
+                });
+
+                if (!overlaps) {
+                  flowerPlaced = true;
+                  this.time.delayedCall(2000, () => {
+                    // Destroy after 2 seconds
+                    newFlower.destroy();
+                  });
+                }
+                attempts++;
+              }
+            } else {
+              console.log("Texture not found for: " + textureKey + " - Skipping this flower"); // Log and skip
+            }
+          }
+
+          if (!this.isGameOver) {
+            this.spawnTimer = this.time.delayedCall(1000, this.spawnFlower, [], this); // Schedule and store next spawn
+          }
+        }
+
+        update() {
+          if (this.isGameOver) return; // Stop update logic if game is over
+
+          const timeLeft = Math.max(0, Math.ceil(this.gameTimer.getRemaining() / 1000));
+          this.timerText.setText("Time: " + timeLeft);
+
+          const pointer = this.input.activePointer;
+          if (pointer.isDown) {
+            this.flowers.getChildren().forEach((flower) => {
+              if (
+                this.isOverlapping(this.bee, flower) &&
+                flower.isOpen &&
+                (flower.type === "pink_poppy" ||
+                  flower.type === "anemone" ||
+                  flower.type === "daisy" ||
+                  flower.type === "red_poppy")
+              ) {
+                this.score += 10;
+                this.scoreText.setText("Score: " + this.score);
+                flower.destroy(); // Destroy on collection
+                window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+              } else if (
+                (flower.type === "hogweed" && this.isOverlapping(this.bee, flower)) ||
+                (flower.type === "borshevik" && this.isOverlapping(this.bee, flower))
+              ) {
+                this.isGameOver = true;
+                this.cleanupGame(); // Call cleanup function
+              }
+            });
+          }
+        }
+
+        cleanupGame() {
+          if (this.gameTimer) {
+            this.gameTimer.remove(); // Remove game timer
+            this.gameTimer = null;
+          }
+          if (this.spawnTimer) {
+            this.spawnTimer.remove(); // Remove spawn timer
+            this.spawnTimer = null;
+          }
+          this.flowers.clear(true, true); // Clear flowers
+          window.FarcadeSDK.singlePlayer.actions.gameOver({ score: this.score });
+        }
+
+        isOverlapping(a, b) {
+          const ra = this.getHitRadius(a);
+          const rb = this.getHitRadius(b);
+          const d = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
+          return d < ra + rb;
+        }
+
+        getHitRadius(object) {
+          switch (object.type) {
+            case "bee":
+              return 30; // Custom hit radius for bee
+            case "pink_poppy":
+            case "anemone":
+            case "daisy":
+            case "red_poppy":
+              return 20; // Larger hit radius for good flowers
+            case "hogweed":
+              return 65; // Updated hit radius for hogweed
+            case "borshevik":
+              return 65; // Updated hit radius for borshevik
+            default:
+              return 10; // Fallback radius
+          }
+        }
+      }
+
+      const config = {
+        type: Phaser.AUTO,
+        width: 540,
+        height: 960,
+        parent: "game-container",
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: [IntroScene, MainScene],
+        physics: {
+          default: "arcade",
+          arcade: { debug: false },
+        },
+      };
+
+      const game = new Phaser.Game(config);
+
+      window.FarcadeSDK.on("play_again", () => {
+        const mainScene = game.scene.getScene("MainScene");
+        if (mainScene) {
+          mainScene.scene.restart(); // Restart the MainScene
+        }
+      });
+
+      window.FarcadeSDK.on("toggle_mute", (data) => {
+        if (data.isMuted) {
+          console.log("Audio muted");
+        } else {
+          console.log("Audio unmuted");
+        }
+      });
+    </script>
+  </body>
+</html>
